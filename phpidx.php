@@ -8,7 +8,7 @@ define('CONFIG_FILE', __DIR__ . '/phpidx-config.json');
  * @package phpidx
  * @author michael@hendrixweb.net
  * @copyright 2021 Otterly Useless (Attribution-ShareAlike 4.0 International (CC BY-SA 4.0))
- * @version 0.1.3
+ * @version 0.1.5
  * @link https://middleware.idxbroker.com/docs/api/overview.php
  */
 
@@ -23,6 +23,7 @@ class PhpIdx
 	protected $headers;
 	protected $method;
 	protected $uxtime;
+	public $statelist;
 
 	function __construct(string $cmpnt = '')
 	{
@@ -37,6 +38,7 @@ class PhpIdx
 		$this->uxtime     = time();
 		$this->component  = $cmpnt ? $cmpnt . '/' : 'clients/';
 		$this->baseurl    = $this->baseurl . $this->component;
+		$this->statelist  = (array) $this->getStateList();
 
 		if(file_exists(CACHE_PATH) !== true)
 		{
@@ -52,6 +54,18 @@ class PhpIdx
 	}
 
 	/**
+	 * Function to build an associative array of states and their abbreviations
+	 *
+	 * @since 0.1.5
+	 */
+	function getStateList()
+	{
+		$list = json_decode(file_get_contents(__DIR__ . '/state-abbreviations.json'), true);
+
+		return $list;
+	}
+
+	/**
 	 * Fetch response
 	 *
 	 * @param $url
@@ -62,7 +76,7 @@ class PhpIdx
 		$cache_file  = hash('sha256', $this->endpoint) . '.json';
 		$fetch_cache = file_get_contents(CACHE_PATH . $cache_file);
 
-		if(($fetch_cache !== false) && ((filemtime($cache_file) + $cache_time) > time()))
+		if(($fetch_cache !== false) && ((filemtime($cache_file) + $this->cache_time) > time()))
 		{
 			// Use our cached results
 			$response = json_decode($fetch_cache, true);
@@ -99,6 +113,7 @@ class PhpIdx
 	 * Sets the endpoint to use in the cURL request
 	 *
 	 * @param endpoint
+	 * @since 0.1.5
 	 */
 	function setEndpoint($endpoint = '/')
 	{
@@ -109,6 +124,7 @@ class PhpIdx
 	 * Sets cURL options
 	 *
 	 * @param accesskey
+	 * @since 0.1.5
 	 */
 	protected function setOptions(string $accesskey = '', string $request_type = 'GET', array $addtl_headers = array())
 	{
