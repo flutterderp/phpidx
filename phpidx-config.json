@@ -1,0 +1,8 @@
+{
+  "PHPIDXConfig": {
+    "baseurl": "https://api.idxbroker.com/",
+    "apiversion": "1.7.0",
+    "accesskey": "",
+    "cache_time": "900"
+  }
+}

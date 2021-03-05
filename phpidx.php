@@ -1,4 +1,9 @@
 <?php
+date_default_timezone_set('UTC');
+
+define('CACHE_PATH', __DIR__ . '/cache/');
+define('CONFIG_FILE', __DIR__ . '/phpidx-config.json');
+
 /**
  * @package phpidx
  * @author michael@hendrixweb.net
@@ -12,22 +17,33 @@ class PhpIdx
 	protected $apiversion;
 	protected $accesskey;
 	protected $baseurl;
+	protected $cache_time;
 	protected $ch;
 	protected $component;
 	protected $headers;
 	protected $method;
 	protected $uxtime;
 
-	function __construct(string $cmpnt = '', string $accesskey = '')
+	function __construct(string $cmpnt = '')
 	{
-		$this->apiversion = '1.7.0';
-		$this->accesskey  = $accesskey;
-		$this->baseurl    = 'https://api.idxbroker.com/';
+		$config = json_decode(file_get_contents(CONFIG_FILE), false);
+
+		$this->accesskey  = $config->PHPIDXConfig->accesskey;
+		$this->apiversion = $config->PHPIDXConfig->apiversion;
+		$this->baseurl    = $config->PHPIDXConfig->baseurl;
 		$this->method     = 'GET';
+		$this->cache_time = $config->PHPIDXConfig->cache_time; // default fifteen minute cache (15 * 60)
 		$this->ch         = curl_init();
 		$this->uxtime     = time();
 		$this->component  = $cmpnt ? $cmpnt . '/' : 'clients/';
 		$this->baseurl    = $this->baseurl . $this->component;
+
+		if(file_exists(CACHE_PATH) !== true)
+		{
+			mkdir(CACHE_PATH, 0755);
+
+			touch(CACHE_PATH);
+		}
 	}
 
 	function __destruct()
@@ -43,18 +59,37 @@ class PhpIdx
 	 */
 	protected function fetchResponse(string $url = '/')
 	{
-		$response = curl_exec($this->ch);
-		$code     = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
+		$cache_file  = hash('sha256', $this->endpoint) . '.json';
+		$fetch_cache = file_get_contents(CACHE_PATH . $cache_file);
 
-		if($code >= 200 || $code < 300)
+		if(($fetch_cache !== false) && ((filemtime($cache_file) + $cache_time) > time()))
 		{
-			$response          = json_decode($response, true);
-			$response['error'] = $code;
+			// Use our cached results
+			$response = json_decode($fetch_cache, true);
 		}
 		else
 		{
-			$response = array();
-			$response['error'] = $code;
+			$response = curl_exec($this->ch);
+			$code     = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
+
+			if($code >= 200 || $code < 300)
+			{
+				$response          = json_decode($response, true);
+				$response['error'] = $code;
+			}
+			else
+			{
+				$response = array();
+				$response['error'] = $code;
+			}
+
+			// Write to a cache file
+			/* $to_file = array('headers' => $response_headers, 'body' => json_decode($response_body));
+			$to_file = json_encode($to_file); */
+			$to_file = json_encode($response);
+
+			file_put_contents(CACHE_PATH . $cache_file, $to_file);
+			touch($cache_file, time());
 		}
 
 		return $response;
@@ -207,7 +242,7 @@ class PhpIdx
 	 */
 	function widgets()
 	{
-		$url   = $this->baseurl . 'widgetsrc';
+		$url = $this->baseurl . 'widgetsrc';
 
 		$this->setEndpoint($url);
 		$this->setOptions();
