@@ -10,6 +10,7 @@ define('CONFIG_FILE', __DIR__ . '/phpidx-config.json');
  * @copyright 2021 Otterly Useless (Attribution-ShareAlike 4.0 International (CC BY-SA 4.0))
  * @version 0.1.5
  * @link https://middleware.idxbroker.com/docs/api/overview.php
+ * @link https://developers.idxbroker.com/idx-broker-api/api-request-and-response-headers/
  */
 
 class PhpIdx
@@ -73,13 +74,16 @@ class PhpIdx
 	 */
 	protected function fetchResponse(string $url = '/')
 	{
-		$cache_file  = hash('sha256', $this->endpoint) . '.json';
-		$fetch_cache = file_get_contents(CACHE_PATH . $cache_file);
+		$filename   = hash('sha256', $this->endpoint) . '.json';
+		$cache_file = CACHE_PATH . $filename;
+		$handle     = @fopen($cache_file, 'r+');
+		// $fetch_cache = file_get_contents($cache_file);
 
-		if(($fetch_cache !== false) && ((filemtime($cache_file) + $this->cache_time) > time()))
+		if(($handle !== false) && ((filemtime($cache_file) + $this->cache_time) > time()))
 		{
 			// Use our cached results
-			$response = json_decode($fetch_cache, true);
+			$fetch_cache = fread($handle, filesize($cache_file));
+			$response    = json_decode($fetch_cache, true);
 		}
 		else
 		{
@@ -102,9 +106,24 @@ class PhpIdx
 			$to_file = json_encode($to_file); */
 			$to_file = json_encode($response);
 
-			file_put_contents(CACHE_PATH . $cache_file, $to_file);
-			touch($cache_file, time());
+			if($handle === false)
+			{
+				$handle = fopen($cache_file, 'w+');
+			}
+			else
+			{
+				// Truncate cache file if it exists and rewind
+				ftruncate($handle, 0);
+				rewind($handle);
+			}
+
+			// Write data to the cache file
+			fwrite($handle, $to_file, mb_strlen($to_file));
+			// file_put_contents($cache_file, $to_file);
+			// touch($cache_file, time());
 		}
+
+		fclose($handle);
 
 		return $response;
 	}
@@ -222,15 +241,15 @@ class PhpIdx
 	 * Fetches featured (active) properties
 	 * @since 0.1.0
 	 */
-	function activeProperties(string $type = '', int $limit = 25, int $offset = 0)
+	function activeProperties(string $type = '', int $offset = 0, $limit = 25)
 	{
 		// type options: featured, supplemental, historical
 		$query_data                  = array();
 		/* $query_data['propStatus[0]'] = 'Active';
 		$query_data['per']           = 10;
 		$query_data['srt']           = 'newset'; */
-		$query_data['limit']         = $limit;
-		$query_data['offset']        = 0;
+		$query_data['limit']         = (int) $limit;
+		$query_data['offset']        = (int) $offset;
 
 		$query = http_build_query($query_data);
 		$url   = $type . '?' . $query;
