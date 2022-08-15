@@ -321,7 +321,7 @@ try
 		$item->id                                  = ($existing > 0) ? (int) $existing : null;
 		$item->title                               = $property['address'] . ' (' . $property['listingID'] . ')';
 		$item->alias                               = OutputFilter::stringUrlSafe($item->title);
-		$item->acres                               = $property['acres'];
+		$item->acres                               = isset($property['acres']) ? $property['acres'] : 0;
 		$item->bedrooms                            = isset($property['bedrooms']) ? $property['bedrooms'] : 0;
 		$item->addressString                       = $property['address'];
 		$item->buildingAreaTotal                   = isset($property['advanced']['buildingAreaTotal']) ? (float) $property['advanced']['buildingAreaTotal'] : 0;
