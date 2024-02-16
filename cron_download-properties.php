@@ -1,5 +1,5 @@
 <?php
-ini_set('display_errors', 'on');
+// ini_set('display_errors', 'on');
 
 if(PHP_SAPI !== 'cli')
 {
@@ -9,16 +9,22 @@ if(PHP_SAPI !== 'cli')
 // return false;
 setlocale(LC_MONETARY, 'en_US');
 
-define('_JEXEC', 1);
-define('JPATH_BASE', '/home/USERNAME/path/to/joomla');
-define('DS', DIRECTORY_SEPARATOR);
-
 use Joomla\CMS\Component\ComponentHelper;
 use Joomla\CMS\Factory;
+use Joomla\CMS\Filesystem\Path;
 use Joomla\CMS\Filter\OutputFilter;
+use Joomla\CMS\HTML\HTMLHelper;
+use Joomla\CMS\Language\Text;
+use Joomla\CMS\Router\Route;
+use Joomla\CMS\Uri\Uri;
+use Joomla\CMS\Version;
 use Joomla\Registry\Registry;
 
+define('_JEXEC', 1);
+define('JPATH_BASE', '/home/USERNAME/path/to/joomla');
+
 $canFormat = class_exists('NumberFormatter');
+$jfours    = array(4,5);
 
 if($canFormat === true)
 {
@@ -29,8 +35,28 @@ require_once(JPATH_BASE . '/includes/defines.php');
 require_once(JPATH_BASE . '/includes/framework.php');
 require_once(__DIR__ . '/phpidx.php');
 
-$app           = Factory::getApplication('site');
-$app->initialise();
+if(in_array(Version::MAJOR_VERSION, $jfours))
+{
+	$container = Factory::getContainer();
+	$container->alias('session', 'session.cli')
+		->alias('JSession', 'session.cli')
+		->alias(\Joomla\CMS\Session\Session::class, 'session.cli')
+		->alias(\Joomla\Session\Session::class, 'session.cli')
+		->alias(\Joomla\Session\SessionInterface::class, 'session.cli');
+
+	$app = $container->get(\Joomla\Console\Application::class);
+	$app->createExtensionNamespaceMap(); // https://joomla.stackexchange.com/a/32146/41
+	// $app->loadLanguage(); /* allows modules to render */
+
+	// Set the application as global app
+	Factory::$application = $app;
+}
+else
+{
+	$app = Factory::getApplication('site');
+	$app->initialise();
+}
+
 // $user          = Factory::getUser();
 $utc_tz        = new DateTimeZone('UTC');
 $today         = new DateTime(null, $utc_tz);
@@ -319,6 +345,7 @@ try
 		// Update item details
 		$item                                      = new stdClass();
 		$item->id                                  = ($existing > 0) ? (int) $existing : null;
+		$item->catid                               = (int) $catid;
 		$item->title                               = $property['address'] . ' (' . $property['listingID'] . ')';
 		$item->alias                               = OutputFilter::stringUrlSafe($item->title);
 		$item->acres                               = isset($property['acres']) ? $property['acres'] : 0;
@@ -360,7 +387,7 @@ try
 		$item->listOfficePhone                     = isset($property['advanced']['listOfficePhone']) ? $property['advanced']['listOfficePhone'] : '';
 		$item->listingContractDate                 = !empty($listingContractDate) ? $listingContractDate->format('Y-m-d H:i:s') : null;
 		$item->listingOfficeName                   = isset($property['advanced']['listingOfficeName']) ? $property['advanced']['listingOfficeName'] : '';
-		$item->lotSizeDimensions                   = isset($property['advanced']['lotSizeDimensions']) ? $property['advanced']['lotSizeDimensions'] : '';
+		$item->lotSizeDimensions                   = isset($property['advanced']['lotSizeDimensions']) ? (float) $property['advanced']['lotSizeDimensions'] : 0.00;
 		$item->newConstructionYN                   = isset($property['advanced']['newConstructionYN']) ? $property['advanced']['newConstructionYN'] : '';
 		$item->numberOfUnitsLeased                 = isset($property['advanced']['numberOfUnitsLeased']) ? (int) $property['advanced']['numberOfUnitsLeased'] : 0;
 		$item->possibleUse                         = $possibleUse;
@@ -443,13 +470,20 @@ try
 		$item->state                               = 1;
 		$item->language                            = '*';
 
+		$active_status = array('Coming Soon', 'Active');
+
+		/* if(!in_array($property['propStatus'], $active_status))
+		{
+			$item->state = 0;
+		} */
+
 		if($existing > 0)
 		{
 			$queryResult = $db->updateObject('#__idxproperties', $item, 'id');
 		}
 		else
 		{
-			$item->catid   = (int) $catid;
+			// $item->catid   = (int) $catid;
 			// $item->created = $dateModified->format('Y-m-d H:i:s');
 
 			$queryResult = $db->insertObject('#__idxproperties', $item, 'id');
@@ -466,6 +500,8 @@ try
 	// throw new Exception('…is exception handling even freaking working!?');
 
 	$db->transactionCommit();
+
+	// echo 'IDX processing completed' . PHP_EOL;
 }
 catch(Exception $e)
 {
