@@ -1,7 +1,7 @@
 <?php
 // ini_set('display_errors', 'on');
 
-if(PHP_SAPI !== 'cli')
+if (PHP_SAPI !== 'cli')
 {
 	echo 'Attempting to run CLI application outside of terminal; exiting…' . PHP_EOL;
 	exit(126); // Command invoked cannot execute
@@ -24,9 +24,9 @@ define('_JEXEC', 1);
 define('JPATH_BASE', '/home/USERNAME/path/to/joomla');
 
 $canFormat = class_exists('NumberFormatter');
-$jfours    = array(4,5);
+$jfours    = [4,5];
 
-if($canFormat === true)
+if ($canFormat === true)
 {
 	$money_format = new \NumberFormatter('en_US', NumberFormatter::CURRENCY);
 }
@@ -35,7 +35,7 @@ require_once(JPATH_BASE . '/includes/defines.php');
 require_once(JPATH_BASE . '/includes/framework.php');
 require_once(__DIR__ . '/phpidx.php');
 
-if(in_array(Version::MAJOR_VERSION, $jfours))
+if (in_array(Version::MAJOR_VERSION, $jfours))
 {
 	$container = Factory::getContainer();
 	$container->alias('session', 'session.cli')
@@ -91,13 +91,13 @@ while($has_more !== false)
 	$items    = $idx->activeProperties('featured', $current_offset);
 	$has_more = (isset($items['next']) && !is_null($items['next'])) ? true : false;
 
-	if(isset($items['data']) && !empty($items['data']))
+	if (isset($items['data']) && !empty($items['data']))
 	{
 		$properties = array_merge($properties, $items['data']);
 	}
 }
 
-if(empty($properties))
+if (empty($properties))
 {
 	// var_export($idx); echo PHP_EOL;
 
@@ -112,12 +112,12 @@ try
 	$db->transactionStart();
 
 	$query->clear();
-	$query->update($db->qn('#__idxproperties'))->set('state = 0')->where('state = 1');
+	$query->update($db->quoteName('#__idxproperties'))->set('state = 0')->where('state = 1');
 	$db->setQuery($query);
 	$db->execute();
 	$query->clear();
 
-	foreach($properties as $key => $property)
+	foreach ($properties as $key => $property)
 	{
 		$catid      = 0;
 		// …why are the API results not including internalID anymore!?
@@ -149,7 +149,7 @@ try
 		$ownershipType            = '';
 
 		$query->clear();
-		$query->select('id')->from($db->qn('#__idxproperties'))->where('internalID = ' . $db->q($internalID))->setLimit(1);
+		$query->select('id')->from($db->quoteName('#__idxproperties'))->where('internalID = ' . $db->quote($internalID))->setLimit(1);
 
 		$db->setQuery($query);
 
@@ -178,7 +178,7 @@ try
 		$images    = array();
 		$idxPhotos = array();
 
-		if(isset($property['image']['totalCount']) && $property['image']['totalCount'] > 0)
+		if (isset($property['image']['totalCount']) && $property['image']['totalCount'] > 0)
 		{
 			for($i = 0; $i < $property['image']['totalCount']; $i++)
 			{
@@ -204,139 +204,139 @@ try
 		$listingContractDate = isset($property['advanced']['listingContractDate']) ? new DateTime($property['advanced']['listingContractDate'], $utc_tz) : null;
 		$dateModified        = isset($property['dateModified']) ? new DateTime($property['dateModified'], $utc_tz) : null;
 
-		if(isset($property['advanced']['possibleUse']))
+		if (isset($property['advanced']['possibleUse']))
 		{
 			$possibleUse = new Registry($property['advanced']['possibleUse']);
 			$possibleUse = $possibleUse->toString();
 		}
 
-		if(isset($property['advanced']['roadFrontageType']))
+		if (isset($property['advanced']['roadFrontageType']))
 		{
 			$roadFrontageType = new Registry($property['advanced']['roadFrontageType']);
 			$roadFrontageType = $roadFrontageType->toString();
 		}
 
-		if(isset($property['advanced']['roadResponsibility']))
+		if (isset($property['advanced']['roadResponsibility']))
 		{
 			$roadResponsibility = new Registry($property['advanced']['roadResponsibility']);
 			$roadResponsibility = $roadResponsibility->toString();
 		}
 
-		if(isset($property['advanced']['specialListingConditions']))
+		if (isset($property['advanced']['specialListingConditions']))
 		{
 			$specialListingConditions = new Registry($property['advanced']['specialListingConditions']);
 			$specialListingConditions = $specialListingConditions->toString();
 		}
 
-		if(isset($property['advanced']['structureType']))
+		if (isset($property['advanced']['structureType']))
 		{
 			$structureType = new Registry($property['advanced']['structureType']);
 			$structureType = $structureType->toString();
 		}
 
-		if(isset($property['advanced']['utilities']))
+		if (isset($property['advanced']['utilities']))
 		{
 			$utilities = new Registry($property['advanced']['utilities']);
 			$utilities = $utilities->toString();
 		}
 
-		if(isset($property['advanced']['appliances']))
+		if (isset($property['advanced']['appliances']))
 		{
 			$appliances              = new Registry($property['advanced']['appliances']);
 			$appliances              = $appliances->toString();
 		}
 
-		if(isset($property['advanced']['interiorFeatures']))
+		if (isset($property['advanced']['interiorFeatures']))
 		{
 			$interiorFeatures        = new Registry($property['advanced']['interiorFeatures']);
 			$interiorFeatures        = $interiorFeatures->toString();
 		}
 
-		if(isset($property['advanced']['fireplaceFeatures']))
+		if (isset($property['advanced']['fireplaceFeatures']))
 		{
 			$fireplaceFeatures       = new Registry($property['advanced']['fireplaceFeatures']);
 			$fireplaceFeatures       = $fireplaceFeatures->toString();
 		}
 
-		if(isset($property['advanced']['constructionMaterials']))
+		if (isset($property['advanced']['constructionMaterials']))
 		{
 			$constructionMaterials   = new Registry($property['advanced']['constructionMaterials']);
 			$constructionMaterials   = $constructionMaterials->toString();
 		}
 
-		if(isset($property['advanced']['flooring']))
+		if (isset($property['advanced']['flooring']))
 		{
 			$flooring                = new Registry($property['advanced']['flooring']);
 			$flooring                = $flooring->toString();
 		}
 
-		if(isset($property['advanced']['foundationDetails']))
+		if (isset($property['advanced']['foundationDetails']))
 		{
 			$foundationDetails       = new Registry($property['advanced']['foundationDetails']);
 			$foundationDetails       = $foundationDetails->toString();
 		}
 
-		if(isset($property['advanced']['heating']))
+		if (isset($property['advanced']['heating']))
 		{
 			$heating                 = new Registry($property['advanced']['heating']);
 			$heating                 = $heating->toString();
 		}
 
-		if(isset($property['advanced']['laundryFeatures']))
+		if (isset($property['advanced']['laundryFeatures']))
 		{
 			$laundryFeatures         = new Registry($property['advanced']['laundryFeatures']);
 			$laundryFeatures         = $laundryFeatures->toString();
 		}
 
-		if(isset($property['advanced']['lotFeatures']))
+		if (isset($property['advanced']['lotFeatures']))
 		{
 			$lotFeatures             = new Registry($property['advanced']['lotFeatures']);
 			$lotFeatures             = $lotFeatures->toString();
 		}
 
-		if(isset($property['advanced']['parkingFeatures']))
+		if (isset($property['advanced']['parkingFeatures']))
 		{
 			$parkingFeatures         = new Registry($property['advanced']['parkingFeatures']);
 			$parkingFeatures         = $parkingFeatures->toString();
 		}
 
-		if(isset($property['advanced']['roadSurfaceType']))
+		if (isset($property['advanced']['roadSurfaceType']))
 		{
 			$roadSurfaceType         = new Registry($property['advanced']['roadSurfaceType']);
 			$roadSurfaceType         = $roadSurfaceType->toString();
 		}
 
-		if(isset($property['advanced']['roof']))
+		if (isset($property['advanced']['roof']))
 		{
 			$roof                    = new Registry($property['advanced']['roof']);
 			$roof                    = $roof->toString();
 		}
 
-		if(isset($property['advanced']['sewer']))
+		if (isset($property['advanced']['sewer']))
 		{
 			$sewer                   = new Registry($property['advanced']['sewer']);
 			$sewer                   = $sewer->toString();
 		}
 
-		if(isset($property['advanced']['communityFeatures']))
+		if (isset($property['advanced']['communityFeatures']))
 		{
 			$communityFeatures       = new Registry($property['advanced']['communityFeatures']);
 			$communityFeatures       = $communityFeatures->toString();
 		}
 
-		if(isset($property['advanced']['waterSource']))
+		if (isset($property['advanced']['waterSource']))
 		{
 			$waterSource             = new Registry($property['advanced']['waterSource']);
 			$waterSource             = $waterSource->toString();
 		}
 
-		if(isset($property['advanced']['associationFeeFrequency']))
+		if (isset($property['advanced']['associationFeeFrequency']))
 		{
 			$associationFeeFrequency = new Registry($property['advanced']['associationFeeFrequency']);
 			$associationFeeFrequency = $associationFeeFrequency->toString();
 		}
 
-		if(isset($property['advanced']['ownershipType']))
+		if (isset($property['advanced']['ownershipType']))
 		{
 			$ownershipType           = new Registry($property['advanced']['ownershipType']);
 			$ownershipType           = $ownershipType->toString();
@@ -472,12 +472,12 @@ try
 
 		$active_status = array('Coming Soon', 'Active');
 
-		/* if(!in_array($property['propStatus'], $active_status))
+		/* if (!in_array($property['propStatus'], $active_status))
 		{
 			$item->state = 0;
 		} */
 
-		if($existing > 0)
+		if ($existing > 0)
 		{
 			$queryResult = $db->updateObject('#__idxproperties', $item, 'id');
 		}
